@@ -29,7 +29,7 @@ d_tau = df / chirp_rate
 dr = d_tau * light_speed / 2 / 2 # ゼロパディングのため、見かけの分解能はさらに半分
 ch = 8 # channel
 az_dt =0.01
-az_n = 2000 #アジマス方向のピクセル数
+az_n = 1000 #アジマス方向のピクセル数
 az_time = az_dt * az_n
 l_d = wl / 2
 l_array = [wl / 2, wl / 2 * 2, wl / 2 * 3]
@@ -111,6 +111,38 @@ def heatmap_imaging(cmd, data, index, dx, dy, name):
     plt.clf()
     plt.close()
 
+def heatmap_imaging_vertical_image(cmd, data, index, dx, dy, name):
+    all_font = 20
+    plt.rcParams["font.size"] = all_font
+    az_s_index = index[0]
+    az_e_index = index[1]
+    az_len = az_e_index - az_s_index
+    rg_s_index = index[2]
+    rg_e_index = index[3]
+    rg_len = rg_e_index - rg_s_index
+    plt.figure(figsize = (12, 20))
+    if(cmd == "amp"):
+        sns.heatmap(20 * np.log10(abs(data[az_s_index:az_e_index, rg_s_index:rg_e_index].T)), cmap = "jet", vmin = -30, vmax = 30)
+        plt.text(rg_len + 9, -30, "[dB]", fontsize = all_font) # カラーバーの単位を手動でテキスト表示
+    if(cmd == "phase"):
+        sns.heatmap(np.angle(data[az_s_index:az_e_index, rg_s_index:rg_e_index].T), cmap = "hsv", vmin = -np.pi, vmax = np.pi)
+        plt.text(rg_len + 8, -30, "[rad]", fontsize = all_font) # カラーバーの単位を手動でテキスト表示
+    if(cmd == "ref"):
+        sns.heatmap(abs(data[az_s_index:az_e_index, rg_s_index:rg_e_index]), cbar = False)
+    x_step = int(az_len / 20)
+    y_step = int(rg_len / 25) + 1
+    plt.xticks(np.arange(0, az_e_index - az_s_index, step = x_step), np.round(np.arange(az_s_index * dx, az_e_index * dx, step = dx * x_step), 2), fontsize = all_font, rotation = 90)
+    plt.gca().invert_xaxis()
+    plt.yticks(np.arange(0, rg_e_index - rg_s_index, step = y_step), np.round(np.arange(rg_s_index * dy, rg_e_index * dy, step = dy * y_step), 2), fontsize = all_font, rotation = 0)
+    plt.gca().invert_yaxis()
+    plt.title(name[0])
+    plt.xlabel(name[1], fontsize = all_font)
+    plt.ylabel(name[2], fontsize = all_font)
+    plt.tight_layout()
+    plt.savefig(name[3] + ".pdf", format = "pdf", bbox_inches = 'tight')
+    print(name[3] + " PDFfile was saved\n")
+    plt.clf()
+    plt.close()
 
 # [合成開口後の画像について] 振幅や位相を、レンジアジマス平面に表示。indexとnameは配列
 def sar_imaging(cmd, sar_data, index, az_d_array, name):
