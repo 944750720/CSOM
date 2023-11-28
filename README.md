@@ -9,3 +9,6 @@ Here is the setting of experiment and original images.
 We can see the reflector is the field be circled on the left side of radar heatmap. 
 ![classified result](https://imgur.com/NTUQQdF.jpg "SOM result")
 And I am coding the complex-value SOM to make better use of the amplitude and phase data of radar.
+
+# dbf algorithm
+dbf.py is a python file to achieve digital beamforming algorithm for estimation of direction of arrivals.
