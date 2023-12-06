@@ -45,7 +45,10 @@ def DBF(raw_data):
         result = np.array([])
         for col in steering_vector.T:
             result = np.append(result, np.dot(col, col_tar))
-        # result = np.reshape(result, (181))
+        result = np.reshape(result, (181))
+        # x = range(-90,91,1) # Plot the angle-amp figure
+        # y = result
+        # plt.plot(x,y)
         angle.append(np.argmax(np.abs(result)) - 90)
 
     # i = 0
@@ -81,7 +84,7 @@ def DBF(raw_data):
     # 每个点的颜色值按照colormap("seismic",100)进行设计，其中colormap类型为"seismic"，共分为100个级别(level)
     min_amp = min(np.reshape(np.abs(raw_data[0,:,0:60]), 60000))
     max_amp = max(np.reshape(np.abs(raw_data[0,:,0:60]), 60000))
-    color = [plt.get_cmap("seismic", 100)(int(float(i-min_amp)/(max_amp-min_amp)*100)) for i in amp]
+    color = [plt.get_cmap("jet", 100)(int(float(i-min_amp)/(max_amp-min_amp)*100)) for i in amp]
 
     # 2.0 显示三维散点图
     # 新建一个figure()
@@ -92,7 +95,7 @@ def DBF(raw_data):
     plt.set_cmap(plt.get_cmap("seismic", 100))
     plt.gca().invert_yaxis() # invert azimuth axis corresponding to the scan direction which is from right to left
     # 绘制三维散点，各个点颜色使用color列表中的值，形状为"."
-    im = ax.scatter(azimuth, ground_range, amp, s=100,c=color,marker='.')
+    im = ax.scatter(azimuth, ground_range, height, amp, s=100,c=color,marker='.')
     # 2.1 增加侧边colorbar
     # 设置侧边colorbar，colorbar上显示的值使用lambda方程设置
     fig.colorbar(im, format=ticker.FuncFormatter(lambda x,pos:int(x*(max_amp-min_amp)+min_amp)))
