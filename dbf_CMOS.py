@@ -40,12 +40,12 @@ def DBF(raw_data, class_labels):
     theta0 = np.angle(raw_data[:,:,0:60]) # target beam angle
     theta0 = np.reshape(theta0, (8,-1))
     A = - N_col * (1j * 2 * pi * d * np.sin(theta*pi/180) / 𝜆 )
-    target_beam = np.exp( 1j * 2 * pi * d  * np.sin(theta0) / 𝜆 ).T
-    steering_vector = np.exp(A)
+    steering_vector = np.exp( 1j * 2 * pi * d  * np.sin(theta0) / 𝜆 ).T
+    weight_vector = np.exp(A)
     angle = []
-    for col_tar in target_beam:
+    for col_tar in steering_vector:
         result = np.array([])
-        for col in steering_vector.T:
+        for col in weight_vector.T:
             result = np.append(result, np.dot(col, col_tar))
         angle.append(np.argmax(np.abs(result)) - 90)
 

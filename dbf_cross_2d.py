@@ -17,44 +17,63 @@ az_e_index = index[1]
 rg_s_index = index[2]
 rg_e_index = index[3]
 az_len = az_e_index - az_s_index
-# rg_s_index = index[2]
-# rg_e_index = index[3]
-# rg_len = rg_e_index - rg_s_index
+rg_len = rg_e_index - rg_s_index
 all_font = 20
 
 
 def DBF(raw_data):
     N = 8 # TX numbers * RX numbers = 8, number of arrays
     # center_freq = f_c # 24.15 GHz, the initial frequency of chirp of our FMCW radar
-    d = 0.006 # 5 mmm, the distance between two adjacent RX antennas
+    d = 0.006 # 6 mmm, the distance between two adjacent RX antennas
     # c = light_speed
-    phase_data = np.angle(raw_data[:,:,0:60])
+    phase_data = np.angle(raw_data[:,:,0:rg_e_index])
     phase_data = np.mod(phase_data, 2*pi) # make sure the phase is in the range of [0, 2*pi]
     # tau = phase_data / (2 * pi * center_freq) # time delay matrix
     𝜆 = wl # wavelength matrix
     N_col = np.reshape(np.arange(8),(1, 8)).T
     theta = np.arange(-90,91) # traverse all the angle from front direction
     theta = np.reshape(theta, (1,181))
-    theta0 = np.angle(raw_data[:,:,36]) # target beam angle
+    theta0 = np.angle(raw_data[:,:,0:rg_e_index]) # target beam angle
     theta0 = np.reshape(theta0, (8,-1))
     A = - N_col * (1j * 2 * pi * d * np.sin(theta*pi/180) / 𝜆 )
-    target_beam = np.exp( 1j * 2 * pi * d  * np.sin(theta0) / 𝜆 ).T
-    steering_vector = np.exp(A)
+    steering_vector = np.exp( 1j * 2 * pi * d  * np.sin(theta0) / 𝜆 ).T
+    weight_vector = np.exp(A)
     angle = []
-    for col_tar in target_beam:
+    amp = []
+    for col_tar in steering_vector:
         result = np.array([])
-        for col in steering_vector.T:
+        for col in weight_vector.T:
             result = np.append(result, np.dot(col, col_tar))
-        # result = np.reshape(result, (181))
+        result = np.reshape(result, (181))
+        # x = range(-90,91,1) # Plot the angle-amp figure//
+        # y = result
+        # plt.plot(x,y)
+        # plt.xlabel('angle [˚]')
+        # plt.ylabel('amp')#//
         angle.append(np.argmax(np.abs(result)) - 90)
+        amp.append(max(np.abs(result)))
+
+    azimuth_one_row = np.arange(0, 5, dx) + dx / 2 # (0, azimuth sampling seconds, dx), home
+    azimuth = np.repeat(azimuth_one_row, rg_e_index)
+    slant_range_one_col = np.arange(0, rg_e_index) * dy + dy / 2
+    slant_range = np.tile(slant_range_one_col, (1, az_len))
+    ground_range = np.cos((np.array(angle)) * pi / 180) * slant_range # elevation angle = 80 degree
+    height = np.sin((np.array(angle)) * pi / 180) * slant_range
+    amp_copy = np.array(amp)
+    amp_copy[(amp_copy < 6.5)] = 0 # set the amp of the point which is too low to None for eliminating noise
+    # mask = ~np.isnan(amp_copy) # mask the point which is None
+    # azimuth = azimuth[mask]
+    ground_range = np.reshape(ground_range, (az_len * rg_e_index))
+    # ground_range = ground_range[mask]
+    height = np.reshape(height, (az_len * rg_e_index))
 
     rcs_image_36 = np.zeros((181, 1000))
     i = 0
-    for elem in 20*np.log10(np.abs(raw_data)): # elem is the 20log10(amp) of point
+    for elem in 20*np.log10(amp_copy): # elem is the 20log10(amp) of point
         rcs_image_36[int(angle[i]) + 90, i] = elem # put 20log10(amp) into the corresponding position(azim, angle)
         i += 1
 
-    sns.heatmap(rcs_image_36, cmap = "jet", vmin = -30, vmax = 30)
+    sns.heatmap(rcs_image_36, cmap = "jet")
     x_step = int(az_len / 20) # 20 scale spans, every scale span has 50 points
     y_step = 10 # 18 scale spans, every scale span has 10 degrees
     dx = 0.01 # 0.01s per point in azimuth direction, 10s/1000points
@@ -67,6 +86,10 @@ def DBF(raw_data):
     plt.ylabel('angle [˚]', fontsize = all_font)
     plt.tight_layout()
     plt.title("RCS at 16.33m in range direction")
-    plt.show()
+    plt.savefig('/Users/CHJ/Desktop/send/10-23-17-41-58/cross_images/' + str() + ".pdf", format = "pdf", bbox_inches = 'tight')
+    print( + " PDFfile was saved\n")
+    plt.clf()
+    plt.close()
+    # plt.show()
 
 DBF(raw_data)

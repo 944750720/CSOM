@@ -17,8 +17,6 @@ az_e_index = index[1]
 rg_s_index = index[2]
 rg_e_index = index[3]
 az_len = az_e_index - az_s_index
-# rg_s_index = index[2]
-# rg_e_index = index[3]
 rg_len = rg_e_index - rg_s_index
 all_font = 20
 
@@ -26,26 +24,25 @@ all_font = 20
 def DBF(raw_data):
     N = 8 # TX numbers * RX numbers = 8, number of arrays
     # center_freq = f_c # 24.15 GHz, the initial frequency of chirp of our FMCW radar
-    d = 0.006 # 5 mmm, the distance between two adjacent RX antennas
+    d = 0.006 # 6 mmm, the distance between two adjacent RX antennas
     # c = light_speed
-    # phase_data = np.angle(raw_data[:,:,0:120]) # home
-    phase_data = np.angle(raw_data[:,:,0:60]) # school
+    phase_data = np.angle(raw_data[:,:,0:rg_e_index]) # school
     phase_data = np.mod(phase_data, 2*pi) # make sure the phase is in the range of [0, 2*pi]
     # tau = phase_data / (2 * pi * center_freq) # time delay matrix
     𝜆 = wl # wavelength matrix
     N_col = np.reshape(np.arange(8),(1, 8)).T
     theta = np.arange(-90,91) # traverse all the angle from front direction
     theta = np.reshape(theta, (1,181))
-    theta0 = np.angle(raw_data[:,:,0:60]) # target beam angle, school
+    theta0 = np.angle(raw_data[:,:,0:rg_e_index]) # target beam angle, school
     theta0 = np.reshape(theta0, (8,-1))
     A = - N_col * (1j * 2 * pi * d * np.sin(theta*pi/180) / 𝜆 )
-    target_beam = np.exp( 1j * 2 * pi * d  * np.sin(theta0) / 𝜆 ).T
-    steering_vector = np.exp(A)
+    steering_vector = np.exp( 1j * 2 * pi * d  * np.sin(theta0) / 𝜆 ).T
+    weight_vector = np.exp(A)
     angle = []
     amp = []
-    for col_tar in target_beam:
+    for col_tar in steering_vector:
         result = np.array([])
-        for col in steering_vector.T:
+        for col in weight_vector.T:
             result = np.append(result, np.dot(col, col_tar))
         result = np.reshape(result, (181))
         # x = range(-90,91,1) # Plot the angle-amp figure//
@@ -74,8 +71,8 @@ def DBF(raw_data):
     # plt.show()
 
     azimuth_one_row = np.arange(0, 10, dx) + dx / 2 # (0, azimuth sampling seconds, dx), school
-    azimuth = np.repeat(azimuth_one_row, 60) # school
-    slant_range_one_col = np.arange(0, 60) * dy + dy / 2 # school
+    azimuth = np.repeat(azimuth_one_row, rg_e_index) # school
+    slant_range_one_col = np.arange(0, rg_e_index) * dy + dy / 2 # school
     slant_range = np.tile(slant_range_one_col, (1, az_len))
     ground_range = np.cos(np.array(angle) * pi / 180) * slant_range
     height = np.sin(np.array(angle) * pi / 180) * slant_range
@@ -91,7 +88,7 @@ def DBF(raw_data):
     ax = fig.add_subplot(111,projection='3d')
     plt.set_cmap(plt.get_cmap("seismic", 100))
     plt.gca().invert_yaxis() # invert azimuth axis corresponding to the scan direction which is from right to left
-    # amp[(amp < 8) | (amp > 20)] = None # set the amp of the point which is too low to None for eliminating noisex
+    # amp[(amp < 8) | (amp > 20)] = None # set the amp of the point which is too low to None for eliminating noise
     amp_copy = np.array(amp)
     amp_copy[(amp_copy < 7)] = None # set the amp of the point which is too low to None for eliminating noise
     mask = ~np.isnan(amp_copy) # mask the point which is None
